@@ -51,18 +51,19 @@ struct Cloth : public Object
 	{
 		
 		Eigen::Vector3d tlV, trV, blV, brV;		// corner edges of square cloth
-		trV = V.rowwise().maxCoeff();
-		blV = V.rowwise().minCoeff();
-		tlV << blV.x(), trV.y(), 0;
-		brV << trV.x(), blV.y(), 0;
+		trV << V.col(0).maxCoeff(), V.col(1).maxCoeff(), 0.0f;
+		blV << V.col(0).minCoeff(), V.col(1).minCoeff(), 0.0f;
+
+		tlV << V.col(1).minCoeff(), V.col(1).maxCoeff(), 0.0f;
+		brV << V.col(0).maxCoeff(), V.col(1).minCoeff(), 0.0f;
 		
 		float w, h;
 		w = trV.x() - blV.x();
 		h = trV.y() - blV.y();
 		
 		Eigen::Vector2d tr_uv, bl_uv;			//topright most corner has uv coordinates (1, 1), bottomleft has uv coords (0, 0)
-		tr_uv << 1, 1;
-		bl_uv << 0, 0;
+		tr_uv << 1.0f, 1.0f;
+		bl_uv << 0.0f, 0.0f;
 
 		//go through vertices and interpolate UV coords
 		UV.resize(V.rows(), 2);
@@ -73,14 +74,15 @@ struct Cloth : public Object
 			x = V.row(i).x();
 			y = V.row(i).y();
 
-			s_x = (x - bl_uv.x()) / w;
-			s_y = (y - bl_uv.y()) / h;
+			s_x = (x - blV.x()) / w;
+			s_y = (y - blV.y()) / h;
 			
-			uv(0) = 0 * (1 - s_x) + 1 * s_x;
-			uv(1) = 0 * (1 - s_y) + 1 * s_y;
+			uv(0) = 0.0f * (1 - s_x) + 1.0f * s_x;
+			uv(1) = 0.0f * (1 - s_y) + 1.0f * s_y;
 			UV.row(i) = uv;
 		}
 
+		UV *= 11;
 
 
 	}

@@ -46,22 +46,10 @@ public:
 		cloth.V *= 0.25f; //scale to reasonable
 		cloth.V.col(1).array() += 1.5; //translate cloth upwards
 	
-		std::cout << cloth.F << std::endl;
-			
-
-		// Find the open boundary
-		Eigen::VectorXi bnd;
-		igl::boundary_loop(cloth.F, bnd);
-
-		// Map the boundary to a circle, preserving edge proportions
-		Eigen::MatrixXd bnd_uv;
-		igl::map_vertices_to_circle(cloth.V, bnd, bnd_uv);
-
-		// Harmonic parametrization for the internal vertices
-		igl::harmonic(cloth.V, cloth.F, bnd, bnd_uv, 1, V_uv);
+		cloth.buildUVCoords();
 
 		// Scale UV to make the texture more clear
-		V_uv *= 5;
+		
 	}
 
 	virtual void updateRenderGeometry()
@@ -78,7 +66,7 @@ public:
 	virtual void renderRenderGeometry(igl::opengl::glfw::Viewer &viewer)
 	{
 		viewer.data().set_mesh(cloth.V, cloth.F);
-		viewer.data().set_uv(V_uv);
+		viewer.data().set_uv(cloth.UV);
 		viewer.data().show_texture = true;
 	}
 
