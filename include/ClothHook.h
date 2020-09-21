@@ -26,7 +26,7 @@ public:
 
 	virtual bool simulateOneStep()
 	{
-		
+		cloth.updateCloth(dt);
 		return false;
 	}
 
