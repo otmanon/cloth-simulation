@@ -12,8 +12,12 @@ struct Object
 };
 struct Cloth : public Object
 {
+	Eigen::VectorXd x;
+
 	Eigen::VectorXd energy;				//sum of stretch, shear, and bending energies
-	Eigen::MatrixXd f;					// |V| x 3 force matrix. Each element is the force vector of the corresponding vertex
+	Eigen::MatrixXd fMat;					// |V| x 3 force matrix. Each element is the force vector of the corresponding vertex
+	Eigen::VectorXd f;					//Same as above but flattened to vector
+	Eigen::VectorXd v;					// |V| x 3 velocity matrix. Each element is the velocity vector of the corresponding vertex
 	Eigen::SparseMatrix<double> K;		// stiffness matrix (df/dx)
 	Eigen::MatrixXd y;					//displacement vector to avoid mesh tangling
 	Eigen::SparseMatrix<double> M;		//Mass matrix
@@ -70,7 +74,17 @@ struct Cloth : public Object
 	*/
 	void initCloth()
 	{
-		f.resize(V.rows(), 3);
+		fMat.resize(V.rows(), 3);
+		f.resize(3 * V.rows());
+		v.resize(3 * V.rows());
+		x.resize(3 * V.rows());
+
+		f.setZero();
+		v.setZero();
+		x.setZero();
+		convertMatToVector(V, x);
+		fMat.setZero();
+
 		K.resize(3 * V.rows(), 3 * V.rows());
 		M.resize(3 * V.rows(), 3 * V.rows());
 		M.setIdentity();
@@ -103,27 +117,46 @@ struct Cloth : public Object
 
 		}
 
+		
 
 	};
+
 
 	/*
-	Calculates the stretching energy
+	converts Matrix to flat vector
+	Inpout matrix, output vector
 	*/
-	Eigen::VectorXd stretchingEnergy(Triangle& t) 
+	void convertMatToVector(Eigen::MatrixXd& mat, Eigen::VectorXd& vec)
 	{
-		
-		for (int i = 0; i < F.rows(); i++)
+		vec.resize(mat.rows()*mat.cols());
+		int index = 0;
+		for (int i = 0; i < mat.rows(); i++)
 		{
-			t = triangles[i];
-			//compute triangle contributions to force/stiffness
-			t.computeLocalValues(V);
-
-			//distribute triangle contributions to global stiffness matrix
-			t.distributeLocalToGlobal(f, K);
+			for (int j = 0; j < mat.cols(); j++)
+			{
+				vec(index) = mat(i, j);
+				index++;
+			}
 		}
+	}
 
-	
-	};
+	/*
+	converts flat vector to matrix
+	Inputs vector, and vector size, outputs matrix
+	*/
+	void convertVecToMat(Eigen::VectorXd& vec, int dim, Eigen::MatrixXd& mat)
+	{
+		int index;
+		assert(vec.rows() % dim == 0); //make sure vector and dims are approriate and compatible
+		mat.resize(vec.rows() / dim, dim);
+		int i, j;
+		for (int index = 0; index < vec.rows(); index++)
+		{
+			i = (int)(index / dim);
+			j = index % dim;
+			mat(i, j) = vec(index);
+		}
+	}
 
 	/*
 	Updates the vertex positions of the cloth by solving linear system with Conjugate Gradient method
@@ -133,9 +166,9 @@ struct Cloth : public Object
 	{
 		Triangle t;
 		Eigen::SparseMatrix<double> A;
-		Eigen::MatrixXd f0, v0, b;
+		Eigen::VectorXd f0, v0, b;
 		f0 = f;
-		v0 = V;
+		v0 = v;
 		for (int i = 0; i < F.rows(); i++)
 		{
 			t = triangles[i];
@@ -143,8 +176,9 @@ struct Cloth : public Object
 			t.computeLocalValues(V);
 
 			//distribute triangle contributions to global stiffness matrix
-			t.distributeLocalToGlobal(f, K);
+			t.distributeLocalToGlobal(fMat, K);
 		}
+		convertMatToVector(fMat, f);
 
 		A = (M - dt * dt * K);
 		b = (f0 + dt * K*v0);
@@ -154,8 +188,12 @@ struct Cloth : public Object
 		cg.compute(A);
 		cg.setMaxIterations(10);
 
-		Eigen::MatrixXd x;
-		x = cg.solve(b);
+		Eigen::MatrixXd dv;
+		dv = cg.solve(b);
+		
+		v = v0 + dv;	//update velocity
+		x += dt*v;
+		convertVecToMat(x, V.cols(), V);
 		
 
 	}

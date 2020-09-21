@@ -48,6 +48,8 @@ public:
 	
 		cloth.buildUVCoords();
 
+		cloth.initCloth();
+
 		// Scale UV to make the texture more clear
 		
 	}

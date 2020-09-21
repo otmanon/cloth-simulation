@@ -85,7 +85,7 @@ Inputs:
 		//area = 1/2(duv1 X duv2);
 		Eigen::Vector2d duv1 = uvk - uvi;
 		Eigen::Vector2d duv2 = uvj - uvi;
-		a = 0.5f*(duv1.cross(duv2).norm());
+		a = (0.5) * (duv1(0) * duv2(1) - duv2(0) * duv1(1)); //2d crossprod
 		k = 1;
 		//calculate D as given by Eq. 9 in Baraff/Witkin
 		Eigen::Matrix2d Di;
@@ -104,51 +104,10 @@ Inputs:
 		dwvdk = Eigen::Matrix3d::Identity()*D(1, 1);
 
 
-		//Calculate first derivative of condition quantities... not dependent on x
-		//Use information of dwudi/j/k to calculate C derivatives... gotta derive it yourself using vector calc :) ihatemylife
-		float wuNorm = wu.norm();
-		dCudi = a * dwudi * wu / wuNorm;
-		dCudj = a * dwudj * wu / wuNorm;
-		dCudk = a * dwudk * wu / wuNorm;
-
-		float wvNorm = wv.norm();
-		dCvdi = a * dwvdi * wv / wvNorm;
-		dCvdj = a * dwvdj * wv / wvNorm;
-		dCvdk = a * dwvdk * wv / wvNorm;
+		
 
 
-		//Calculate second derivative of Condition Quantities
-		//Do u component
-		float wuNorm = wu.norm();
-		float wuNorm3 = wuNorm * wuNorm * wuNorm;
-		Eigen::Matrix3d matrixTerm = Eigen::Matrix3d::Identity() / wuNorm - wu * wu.transpose() / wuNorm3;
-		d2Cudidi = a * (dwudi*dwudi*matrixTerm);
-		d2Cudidj = a * (dwudi*dwudj*matrixTerm);
-		d2Cudidk = a * (dwudi*dwudk*matrixTerm);
-
-		d2Cudjdi = a * (dwudj*dwudi*matrixTerm);
-		d2Cudjdj = a * (dwudj*dwudj*matrixTerm);
-		d2Cudjdk = a * (dwudj*dwudk*matrixTerm);
-
-		d2Cudkdi = a * (dwudk*dwudi*matrixTerm);
-		d2Cudkdj = a * (dwudk*dwudj*matrixTerm);
-		d2Cudkdk = a * (dwudk*dwudk*matrixTerm);
-
-		//Do v component
-		float wvNorm = wv.norm();
-		float wvNorm3 = wvNorm * wvNorm * wvNorm;
-		Eigen::Matrix3d matrixTerm = Eigen::Matrix3d::Identity() / wvNorm - wv * wv.transpose() / wvNorm3;
-		d2Cvdidi = a * (dwvdi*dwvdi*matrixTerm);
-		d2Cvdidj = a * (dwvdi*dwvdj*matrixTerm);
-		d2Cvdidk = a * (dwvdi*dwvdk*matrixTerm);
-
-		d2Cvdjdi = a * (dwvdj*dwvdi*matrixTerm);
-		d2Cvdjdj = a * (dwvdj*dwvdj*matrixTerm);
-		d2Cvdjdk = a * (dwvdj*dwvdk*matrixTerm);
-
-		d2Cvdkdi = a * (dwvdk*dwvdi*matrixTerm);
-		d2Cvdkdj = a * (dwvdk*dwvdj*matrixTerm);
-		d2Cvdkdk = a * (dwvdk*dwvdk*matrixTerm);
+		
 
 	}
 
@@ -172,10 +131,10 @@ Inputs:
 	The cloth system's dynamics moves the cloth vertices in a direction as to minimize this energy
 	C is given by eq 10 in Baraff/Witkin
 	*/
-	float computeC()
+	void computeC()
 	{
 		computeDwduv();
-		C << wu.norm() - 1, wv.norm - 1; //TODO: replace with bu, bv
+		C << wu.norm() - 1, wv.norm() - 1; //TODO: replace with bu, bv
 		C *= a;
 		Cu = C(0);
 		Cv = C(1);
@@ -199,6 +158,19 @@ Inputs:
 	*/
 	void computeLocalForces()
 	{
+
+		//Calculate first derivative of condition quantities... not dependent on x
+		//Use information of dwudi/j/k to calculate C derivatives... gotta derive it yourself using vector calc :) ihatemylife
+		float wuNorm = wu.norm();
+		dCudi = a * dwudi * wu / wuNorm;
+		dCudj = a * dwudj * wu / wuNorm;
+		dCudk = a * dwudk * wu / wuNorm;
+
+		float wvNorm = wv.norm();
+		dCvdi = a * dwvdi * wv / wvNorm;
+		dCvdj = a * dwvdj * wv / wvNorm;
+		dCvdk = a * dwvdk * wv / wvNorm;
+
 		//Eq 7 in witkin/baraff
 		fui = -k * dCudi * Cu;
 		fuj = -k * dCudj * Cu;
@@ -217,6 +189,38 @@ Inputs:
 	void computeLocalStiffnesses()
 	{
 		//Eq 8 in witkin/baraff
+		//Calculate second derivative of Condition Quantities
+		//Do u component
+		float wuNorm = wu.norm();
+		float wuNorm3 = wuNorm * wuNorm * wuNorm;
+		Eigen::Matrix3d matrixTerm = Eigen::Matrix3d::Identity() * (1 / wuNorm) - wu * wu.transpose() * (1 / wuNorm3);
+		d2Cudidi = a * (dwudi*dwudi*matrixTerm);
+		d2Cudidj = a * (dwudi*dwudj*matrixTerm);
+		d2Cudidk = a * (dwudi*dwudk*matrixTerm);
+
+		d2Cudjdi = a * (dwudj*dwudi*matrixTerm);
+		d2Cudjdj = a * (dwudj*dwudj*matrixTerm);
+		d2Cudjdk = a * (dwudj*dwudk*matrixTerm);
+
+		d2Cudkdi = a * (dwudk*dwudi*matrixTerm);
+		d2Cudkdj = a * (dwudk*dwudj*matrixTerm);
+		d2Cudkdk = a * (dwudk*dwudk*matrixTerm);
+
+		//Do v component
+		float wvNorm = wv.norm();
+		float wvNorm3 = wvNorm * wvNorm * wvNorm;
+		matrixTerm = Eigen::Matrix3d::Identity() * (1 / wvNorm) - wv * wv.transpose() * (1 / wvNorm3);
+		d2Cvdidi = a * (dwvdi*dwvdi*matrixTerm);
+		d2Cvdidj = a * (dwvdi*dwvdj*matrixTerm);
+		d2Cvdidk = a * (dwvdi*dwvdk*matrixTerm);
+
+		d2Cvdjdi = a * (dwvdj*dwvdi*matrixTerm);
+		d2Cvdjdj = a * (dwvdj*dwvdj*matrixTerm);
+		d2Cvdjdk = a * (dwvdj*dwvdk*matrixTerm);
+
+		d2Cvdkdi = a * (dwvdk*dwvdi*matrixTerm);
+		d2Cvdkdj = a * (dwvdk*dwvdj*matrixTerm);
+		d2Cvdkdk = a * (dwvdk*dwvdk*matrixTerm);
 
 		//u component
 		Kuii = -k * (dCudi * dCudi.transpose() + d2Cudidi * Cu);
