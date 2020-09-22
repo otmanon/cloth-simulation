@@ -37,13 +37,13 @@ public:
 
 	virtual void initSimulation()
 	{
-		dt = 1e-3;
+		dt = 1e-1;
 	
 		igl::readOBJ("data/floor.obj", floor.V, floor.F);
 		floor.V.col(1).array() -= 1.5;
 		
-		igl::readOBJ("data/cloth.obj", cloth.V, cloth.F);
-		cloth.V *= 0.25f; //scale to reasonable
+		igl::readOBJ("data/cloth4.obj", cloth.V, cloth.F);
+		//cloth.V *= 0.25f; //scale to reasonable
 		cloth.V.col(1).array() += 1.5; //translate cloth upwards
 	
 		cloth.buildUVCoords();
@@ -68,8 +68,8 @@ public:
 	virtual void renderRenderGeometry(igl::opengl::glfw::Viewer &viewer)
 	{
 		viewer.data().set_mesh(cloth.V, cloth.F);
-		viewer.data().set_uv(cloth.UV);
-		viewer.data().show_texture = true;
+	//	viewer.data().set_uv(cloth.UV);
+	//	viewer.data().show_texture = true;
 	}
 
 };

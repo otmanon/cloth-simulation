@@ -1,6 +1,5 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <thread>
-#include "PhysicsHook.h"
 #include "ClothHook.h"
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 #include <igl/opengl/glfw/imgui/ImGuiHelpers.h>

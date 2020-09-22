@@ -1,6 +1,4 @@
 #pragma once
-#include <eigen/Dense>
-#include <eigen/Sparse>
 #include "Triangle.h"
 #include <Eigen/IterativeLinearSolvers>
 struct Object
@@ -64,7 +62,7 @@ struct Cloth : public Object
 			UV.row(i) = uv;
 		}
 
-		UV *= 11;
+		UV *= 2;
 
 
 	}
@@ -92,7 +90,7 @@ struct Cloth : public Object
 		triangles = std::vector<Triangle>(F.rows());
 		Triangle t;
 		float massDensity = 1;
-		float onethird = 1 / 3;
+		float onethird = 1.0f / 3.0f;
 		float massthird;
 		for (int i = 0; i < F.rows(); i++)
 		{
@@ -117,11 +115,43 @@ struct Cloth : public Object
 
 		}
 
-		
 
 	};
 
+	/*
+	fills mass matrix
+	*/
+	void calculateMassMatrix()
+	{
+		Triangle t;
+		float massDensity = 1;
+		float onethird = 1.0f / 3.0f;
+		float massthird;
+		M.setZero();
+		M.setIdentity();
+		/*
+		for (int i = 0; i < F.rows(); i++)
+		{
+			t = triangles[i];
 
+			massthird = onethird * t.a;
+
+			//Fill mass matrix
+			M.coeffRef(t.indexi + 0, t.indexi + 0) += massthird; //add triangle area times 1/3
+			M.coeffRef(t.indexi + 1, t.indexi + 1) += massthird;
+			M.coeffRef(t.indexi + 2, t.indexi + 2) += massthird;
+
+			M.coeffRef(t.indexj + 0, t.indexj + 0) += massthird; //add triangle area times 1/3
+			M.coeffRef(t.indexj + 1, t.indexj + 1) += massthird;
+			M.coeffRef(t.indexj + 2, t.indexj + 2) += massthird;
+
+			M.coeffRef(t.indexk + 0, t.indexk + 0) += massthird; //add triangle area times 1/3
+			M.coeffRef(t.indexk + 1, t.indexk + 1) += massthird;
+			M.coeffRef(t.indexk + 2, t.indexk + 2) += massthird;
+
+		}
+		*/
+	}
 	/*
 	converts Matrix to flat vector
 	Inpout matrix, output vector
@@ -166,9 +196,10 @@ struct Cloth : public Object
 	{
 		Triangle t;
 		Eigen::SparseMatrix<double> A;
-		Eigen::VectorXd f0, v0, b;
-		f0 = f;
+		Eigen::VectorXd v0, b;
+	
 		v0 = v;
+		calculateMassMatrix();
 		for (int i = 0; i < F.rows(); i++)
 		{
 			t = triangles[i];
@@ -178,15 +209,25 @@ struct Cloth : public Object
 			//distribute triangle contributions to global stiffness matrix
 			t.distributeLocalToGlobal(fMat, K);
 		}
+		
 		convertMatToVector(fMat, f);
+		//f(1) = -0.1;
+		f(2) = 0.1;
+		//f(38) = 0.1;
+		Eigen::VectorXd y(V.rows() * 3);
+		y.setZero();
+		//y(0) = -0.1;
+		//y(1) = -0.1;
+		//y(2) = 0.1;
+		
 
 		A = (M - dt * dt * K);
-		b = (f0 + dt * K*v0);
+		b = (dt * f) + dt * dt * K*v0 + dt * K*y;
 
 		//Set up solver
 		Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> cg;
 		cg.compute(A);
-		cg.setMaxIterations(10);
+		cg.setMaxIterations(100);
 
 		Eigen::MatrixXd dv;
 		dv = cg.solve(b);
@@ -194,9 +235,12 @@ struct Cloth : public Object
 		v = v0 + dv;	//update velocity
 		x += dt*v;
 		convertVecToMat(x, V.cols(), V);
-		
-
+		K.setZero();
+		f.setZero();
+		fMat.setZero();
 	}
+
+
 	Eigen::VectorXd bendingEnergy() {};
 	Eigen::VectorXd shearingEnergy() {};
 	
