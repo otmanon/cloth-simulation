@@ -1,6 +1,7 @@
 #pragma once
 #include "Triangle.h"
 #include <Eigen/IterativeLinearSolvers>
+#include "CGSolver.h"
 struct Object
 {
 	Eigen::MatrixXd V;					//Vertices
@@ -24,6 +25,7 @@ struct Cloth : public Object
 	
 	std::vector<Triangle> triangles;	//individual triangles found in cloth. Used to compute locally force and stiffness values
 
+	CGSolver solver;
 	/*
 	Assume cloth is straight and is a square with evenly spaced vertices in both directions
 	*/
@@ -114,7 +116,7 @@ struct Cloth : public Object
 			M.coeffRef(t.indexk + 2, t.indexk + 2) += massthird;
 
 		}
-
+		solver.setUpSi(V);
 
 	};
 
@@ -210,9 +212,9 @@ struct Cloth : public Object
 			t.distributeLocalToGlobal(fMat, K);
 		}
 		
+		applyGravity(fMat);
 		convertMatToVector(fMat, f);
-		//f(1) = -0.1;
-		f(2) = 0.1;
+	
 		//f(38) = 0.1;
 		Eigen::VectorXd y(V.rows() * 3);
 		y.setZero();
@@ -224,14 +226,18 @@ struct Cloth : public Object
 		A = (M - dt * dt * K);
 		b = (dt * f) + dt * dt * K*v0 + dt * K*y;
 
+		
+		
+		Eigen::VectorXd dv = solver.solve(A, b);
 		//Set up solver
+		/*
 		Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> cg;
 		cg.compute(A);
 		cg.setMaxIterations(100);
 
 		Eigen::MatrixXd dv;
 		dv = cg.solve(b);
-		
+		*/
 		v = v0 + dv;	//update velocity
 		x += dt*v;
 		convertVecToMat(x, V.cols(), V);
@@ -241,15 +247,21 @@ struct Cloth : public Object
 	}
 
 
-	Eigen::VectorXd bendingEnergy() {};
-	Eigen::VectorXd shearingEnergy() {};
-	
-	Eigen::MatrixXd stretchingStiffness() {};
+	void applyGravity(Eigen::MatrixXd& fMat)
+	{
+		fMat.rowwise() += Eigen::RowVector3d(0.0, -0.1, 0.0);
+	}
 
-	void removeSelfIntersections() {};
-	void solve() {};
-	void resolveContactForces() {};
-	void collisionDetection() {};
-
+	void rotateAboutX(float degrees)
+	{
+		float pi = 3.14159;
+		float deg2rad = pi / 180;
+		float theta = degrees * deg2rad;
+		Eigen::Matrix3d rot;
+		rot << 1,			0,			0,
+				0, cos(theta), -sin(theta),
+				0, sin(theta), sin(theta);
+		V = (rot * V.transpose()).transpose();
+	}
 	
 };

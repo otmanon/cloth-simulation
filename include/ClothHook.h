@@ -44,10 +44,11 @@ public:
 		
 		igl::readOBJ("data/cloth4.obj", cloth.V, cloth.F);
 		//cloth.V *= 0.25f; //scale to reasonable
-		cloth.V.col(1).array() += 1.5; //translate cloth upwards
+		
 	
 		cloth.buildUVCoords();
-
+		cloth.rotateAboutX(90);
+		cloth.V.col(1).array() += 1.5; //translate cloth upwards
 		cloth.initCloth();
 
 		// Scale UV to make the texture more clear
