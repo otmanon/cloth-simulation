@@ -9,7 +9,8 @@ class ClothHook : public PhysicsHook
 {
 private:
 	
-	double dt;							//time step size
+	float dt;							//time step size
+	float k = 1000;							//stiffness constant
 
 	//std::vector<Object> objects;		//list of all objects in scene that are not cloth
 	Object floor;						//object representing floor
@@ -26,13 +27,20 @@ public:
 
 	virtual bool simulateOneStep()
 	{
-		cloth.updateCloth(dt);
+		cloth.updateCloth(dt, k);
 		return false;
 	}
 
 	virtual void drawGUI(igl::opengl::glfw::imgui::ImGuiMenu &menu)
 	{
-
+		if (ImGui::CollapsingHeader("Simulation Parameters"))
+		{
+			ImGui::SliderFloat("TimeStep", &dt, 0.001, 1.0f, "%.3f", 10.0f)  ;
+			ImGui::SliderFloat("Stiffness", &k, 100.0f, 100000.0f, "%.1f", 10.0f);
+			ImGui::SliderFloat("Mass Density", &cloth.massDensity, 0.1f, 5.0f, "%.1f", 10.0f);
+			ImGui::SliderFloat("Gravity", &cloth.gravity, 0.05f, 10.0f, "%.1f", 10.0f);
+		}
+	
 	}
 
 	virtual void initSimulation()
@@ -42,7 +50,7 @@ public:
 		igl::readOBJ("data/floor.obj", floor.V, floor.F);
 		floor.V.col(1).array() -= 1.5;
 		
-		igl::readOBJ("data/cloth6.obj", cloth.V, cloth.F);
+		igl::readOBJ("data/cloth4.obj", cloth.V, cloth.F);
 		//cloth.V *= 0.25f; //scale to reasonable
 		
 	
