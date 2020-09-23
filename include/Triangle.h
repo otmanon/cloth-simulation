@@ -120,7 +120,7 @@ Inputs:
 
 		a = (0.5) * (duv1(0) * duv2(1) - duv2(0) * duv1(1)); //2d crossprod
 		a = (a > 0) ? a : -1*a;
-		k = 10000;
+		k = 1000;
 		//calculate D as given by Eq. 9 in Baraff/Witkin
 		Eigen::Matrix2d Di;
 		Di << uj - ui, uk - ui,

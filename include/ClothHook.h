@@ -42,7 +42,7 @@ public:
 		igl::readOBJ("data/floor.obj", floor.V, floor.F);
 		floor.V.col(1).array() -= 1.5;
 		
-		igl::readOBJ("data/cloth4.obj", cloth.V, cloth.F);
+		igl::readOBJ("data/cloth6.obj", cloth.V, cloth.F);
 		//cloth.V *= 0.25f; //scale to reasonable
 		
 	
